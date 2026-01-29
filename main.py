@@ -4,6 +4,9 @@ from fastapi.staticfiles import StaticFiles
 from typing import List
 import shutil, os, uuid, requests, time
 
+# =========================
+# APP
+# =========================
 app = FastAPI()
 
 # =========================
@@ -19,8 +22,11 @@ app.add_middleware(
 # =========================
 # THƯ MỤC
 # =========================
-os.makedirs("uploads", exist_ok=True)
-os.makedirs("static/generated", exist_ok=True)
+UPLOAD_DIR = "uploads"
+GENERATED_DIR = "static/generated"
+
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(GENERATED_DIR, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -32,7 +38,7 @@ HORDE_STATUS = "https://stablehorde.net/api/v2/generate/status/{}"
 
 HEADERS = {
     "Content-Type": "application/json",
-    "apikey": "0000000000"  # anonymous
+    "apikey": "0000000000"  # anonymous key
 }
 
 
@@ -40,7 +46,7 @@ def call_stable_horde(prompt: str, output_path: str):
     payload = {
         "prompt": prompt,
         "nsfw": False,
-        "models": ["stable_diffusion"],  # model dễ có worker
+        "models": ["stable_diffusion"],
         "params": {
             "sampler_name": "k_euler",
             "steps": 20,
@@ -50,7 +56,7 @@ def call_stable_horde(prompt: str, output_path: str):
         }
     }
 
-    # ===== GỬI JOB =====
+    # GỬI JOB
     try:
         submit = requests.post(
             HORDE_SUBMIT,
@@ -68,7 +74,7 @@ def call_stable_horde(prompt: str, output_path: str):
     if not job_id:
         raise HTTPException(502, "Không nhận được job_id")
 
-    # ===== POLL KẾT QUẢ =====
+    # CHỜ KẾT QUẢ
     for _ in range(60):  # ~120s
         time.sleep(2)
 
@@ -98,11 +104,11 @@ def call_stable_horde(prompt: str, output_path: str):
                 f.write(img_data)
             return
 
-    raise HTTPException(504, "AI xử lý quá lâu (timeout)")
+    raise HTTPException(504, "AI xử lý quá lâu")
 
 
 # =========================
-# API TẠO SÁCH
+# API
 # =========================
 @app.post("/create-book")
 async def create_book(
@@ -112,9 +118,9 @@ async def create_book(
     pages = []
 
     for i, img in enumerate(images):
-        img_id = str(uuid.uuid4())
-        input_path = f"uploads/{img_id}_{img.filename}"
-        output_path = f"static/generated/{img_id}.png"
+        uid = str(uuid.uuid4())
+        input_path = f"{UPLOAD_DIR}/{uid}_{img.filename}"
+        output_path = f"{GENERATED_DIR}/{uid}.png"
 
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(img.file, buffer)
@@ -123,7 +129,7 @@ async def create_book(
 
         pages.append({
             "page": i + 1,
-            "image_url": f"http://127.0.0.1:8000/{output_path}",
+            "image_url": f"/{output_path}",
             "caption": f"AI tạo theo phong cách: {prompt}"
         })
 
@@ -135,8 +141,13 @@ async def create_book(
 
 
 # =========================
-# RUN SERVER
+# RUN (Render dùng PORT)
 # =========================
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port
+    )
