@@ -11,9 +11,7 @@
   --bg: radial-gradient(circle at top, #111827, #020617);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -72,9 +70,7 @@ input::file-selector-button {
   cursor: pointer;
 }
 
-textarea::placeholder {
-  color: #c7d2fe;
-}
+textarea::placeholder { color: #c7d2fe; }
 
 button {
   margin-top: 20px;
@@ -130,13 +126,9 @@ button:hover {
   animation: spin 1s linear infinite;
 }
 
-.spinner.stop {
-  animation: none;
-}
+.spinner.stop { animation: none; }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .status.error { color: #f87171; }
 .status.success { color: #4ade80; }
@@ -148,10 +140,6 @@ button:hover {
   background: rgba(255,255,255,.12);
   box-shadow: 0 0 30px rgba(0,0,0,.25);
   animation: fadeUp .6s ease;
-}
-
-.page h3 {
-  margin: 0 0 10px;
 }
 
 .page img {
@@ -182,7 +170,7 @@ footer span {
   <h2>📘 AI Photo Book</h2>
 
   <input type="file" id="images" multiple>
-  <textarea id="prompt" placeholder="Cinematic, ultra detail, soft light..."></textarea>
+  <textarea id="prompt" placeholder="Cinematic, soft light, illustration..."></textarea>
   <button onclick="createBook()">✨ Tạo ảnh AI</button>
 
   <div class="progress-bar">
@@ -203,7 +191,7 @@ footer span {
 
 <script>
 async function createBook() {
-  const files = images.files;
+  const files = document.getElementById("images").files;
   const prompt = document.getElementById("prompt").value;
   const result = document.getElementById("result");
   const progress = document.getElementById("progress");
@@ -212,7 +200,7 @@ async function createBook() {
   const spinner = document.getElementById("spinner");
 
   if (!files.length || !prompt.trim()) {
-    alert("⚠️ Chọn ảnh và nhập prompt!");
+    alert("⚠️ Vui lòng chọn ảnh và nhập prompt");
     return;
   }
 
@@ -231,24 +219,26 @@ async function createBook() {
   }
 
   try {
-    setProgress(15, "🔌 Kết nối server...");
+    setProgress(20, "🔌 Kết nối máy chủ...");
     await new Promise(r => setTimeout(r, 500));
 
-    setProgress(35, "📡 Gửi dữ liệu AI...");
+    setProgress(45, "📡 Gửi yêu cầu AI...");
     await new Promise(r => setTimeout(r, 500));
 
-    setProgress(60, "⏳ AI đang xử lý...");
-    const res = await fetch("http://127.0.0.1:8000/create-book", {
+    setProgress(65, "⏳ AI đang xử lý (có thể hơi lâu)...");
+    
+    /* ✅ QUAN TRỌNG: DÙNG RELATIVE URL */
+    const res = await fetch("/create-book", {
       method: "POST",
       body: formData
     });
 
     if (!res.ok) throw new Error();
 
-    setProgress(90, "🎨 Render ảnh...");
+    setProgress(90, "🎨 Đang render ảnh...");
     const data = await res.json();
 
-    setProgress(100, "✅ Hoàn tất");
+    setProgress(100, "✅ Hoàn tất!");
     spinner.className = "spinner stop";
     statusBox.classList.add("success");
 
@@ -265,7 +255,7 @@ async function createBook() {
   } catch {
     spinner.style.display = "none";
     statusBox.className = "status error";
-    statusText.textContent = "❌ AI quá tải hoặc lỗi server";
+    statusText.textContent = "❌ AI quá tải hoặc lỗi server, thử lại sau";
   }
 }
 </script>
